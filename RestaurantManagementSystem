@@ -1,0 +1,200 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Define a structure to represent a menu item
+typedef struct MenuItem {
+    char name[50];
+    double price;
+    int quantity;
+} MenuItem;
+
+// Function to add a new menu item
+void addMenuItem(MenuItem menu[], int *numItems) {
+    FILE *file = fopen("menu.txt", "a");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+        exit(1);
+    }
+
+    printf("Enter the name of the new item: ");
+    scanf("%s", menu[*numItems].name);
+    fprintf(file, "%s ", menu[*numItems].name);
+    printf("Enter the price of the item: ");
+    scanf("%lf", &menu[*numItems].price);
+    fprintf(file, "%.2lf ", menu[*numItems].price);
+    printf("Enter the quantity of the item: ");
+    scanf("%d", &menu[*numItems].quantity);
+    fprintf(file, "%d\n", menu[*numItems].quantity);
+
+    fclose(file);
+    (*numItems)++;
+}
+
+// Function to display the menu
+void displayMenu(MenuItem menu[], int *numItems) {
+    FILE *file = fopen("menu.txt", "r");
+    if (file == NULL) {
+        printf("Menu file not found. Creating a new one...\n");
+        return;
+    }
+
+    printf("\nMenu:\n");
+    char name[50];
+    double price;
+    int quantity;
+    int i = 0;
+    while (fscanf(file, "%s %lf %d\n", name, &price, &quantity) != EOF) {
+        strcpy(menu[i].name, name);
+        menu[i].price = price;
+        menu[i].quantity = quantity;
+        printf("%d. %s - %.2lf TK - Quantity: %d\n", i + 1, menu[i].name, menu[i].price, menu[i].quantity);
+        i++;
+    }
+
+    *numItems = i;
+
+    if (*numItems == 0) {
+        printf("Menu is currently empty. Please add items.\n");
+    }
+
+    fclose(file);
+}
+
+// Function to restock menu item
+void restockMenuItem(MenuItem menu[], int numItems) {
+    int choice, quantity;
+
+    printf("\nEnter the item number to restock: ");
+    scanf("%d", &choice);
+
+    if (choice < 1 || choice > numItems) {
+        printf("Invalid choice.\n");
+        return;
+    }
+
+    printf("Enter the quantity to restock: ");
+    scanf("%d", &quantity);
+
+    menu[choice - 1].quantity += quantity;
+    printf("%d %s restocked. New quantity: %d\n", quantity, menu[choice - 1].name, menu[choice - 1].quantity);
+
+    // Update the menu.txt file with the new quantity
+    FILE *file = fopen("menu.txt", "w");
+    if (file == NULL) {
+        printf("Error opening file for updating quantity.\n");
+        return;
+    }
+
+    for (int i = 0; i < numItems; i++) {
+        fprintf(file, "%s %.2lf %d\n", menu[i].name, menu[i].price, menu[i].quantity);
+    }
+
+    fclose(file);
+}
+
+// Function to take orders and calculate total bill
+double takeOrder(MenuItem menu[], int numItems, double *totalIncome) {
+    int choice, quantity;
+    double total = 0.0;
+
+    printf("\nEnter item number (0 to end order): ");
+    scanf("%d", &choice);
+
+    FILE *file = fopen("bill.txt", "a");
+    if (file == NULL) {
+        printf("Error opening file for writing bill.\n");
+        return total;
+    }
+
+    fprintf(file, "Bill:\n");
+
+    while (choice != 0) {
+        if (choice < 1 || choice > numItems) {
+            printf("Invalid choice. Please try again.\n");
+        } else {
+            printf("Enter the quantity of %s: ", menu[choice - 1].name);
+            scanf("%d", &quantity);
+
+            if (quantity > menu[choice - 1].quantity) {
+                printf("Insufficient quantity available.\n");
+            } else {
+                total += menu[choice - 1].price * quantity;
+                printf("Added %d %s to order. Current total: %.2lf TK\n", quantity, menu[choice - 1].name, total);
+                menu[choice - 1].quantity -= quantity;
+                *totalIncome += total; // Update total income
+
+                // Write item name, quantity, and total bill to bill.txt
+                fprintf(file, "%s - %d - %.2lf TK\n", menu[choice - 1].name, quantity, total);
+            }
+        }
+        printf("Enter item number (0 to end order): ");
+        scanf("%d", &choice);
+    }
+
+    fclose(file);
+
+    // Update the menu.txt file with the new quantities after order
+    file = fopen("menu.txt", "w");
+    if (file == NULL) {
+        printf("Error opening file for updating quantity.\n");
+        return total;
+    }
+
+    for (int i = 0; i < numItems; i++) {
+        fprintf(file, "%s %.2lf %d\n", menu[i].name, menu[i].price, menu[i].quantity);
+    }
+
+    fclose(file);
+
+    return total;
+}
+
+// Main function
+int main() {
+    MenuItem menu[50]; // Maximum of 50 menu items
+    int numItems = 0;
+    char choice;
+    double totalIncome = 0.0;
+
+    // Load menu items from file
+    displayMenu(menu, &numItems);
+
+    do {
+        printf("\nRestaurant Management System\n");
+        printf("1. Add Menu Item\n");
+        printf("2. Display Menu\n");
+        printf("3. Restock Menu Item\n");
+        printf("4. Take Order\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf(" %c", &choice);
+
+        switch (choice) {
+            case '1':
+                addMenuItem(menu, &numItems);
+                break;
+            case '2':
+                displayMenu(menu, &numItems);
+                break;
+            case '3':
+                displayMenu(menu, &numItems);
+                restockMenuItem(menu, numItems);
+                break;
+            case '4':
+                if (numItems == 0) {
+                    printf("Menu is empty. Please add items before taking orders.\n");
+                } else {
+                    printf("\nOrder Total: %.2lf TK\n", takeOrder(menu, numItems, &totalIncome));
+                }
+                break;
+            case '5':
+                printf("Exiting program. Goodbye!\n");
+                exit(0);
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != '5');
+
+    return 0;
+}
