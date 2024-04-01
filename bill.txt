@@ -1,0 +1,4 @@
+Bill:
+Meat - 1 - 50.00 TK
+Rice - 1 - 60.00 TK
+Coke - 1 - 63.00 TK

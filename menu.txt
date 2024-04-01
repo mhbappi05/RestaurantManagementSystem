@@ -1,0 +1,8 @@
+Meat 50.00 3
+Fish 25.00 5
+Curry 20.00 5
+Checken 40.00 1
+Rice 10.00 2
+Burger 5.00 9
+Pizza 12.00 2
+Coke 3.00 7
